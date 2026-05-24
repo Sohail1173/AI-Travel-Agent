@@ -1,2 +1,17 @@
 tavily-python
 python-dotenv
+langgraph 
+langchain 
+langchain-openai 
+langchain-groq 
+langchain-community 
+langchain-tavily 
+psycopg
+psycopg_pool 
+python-dotenv 
+tavily-python 
+requests 
+streamlit
+langgraph-checkpoint-postgres
+psycopg[binary,pool]
+psycopg[binary]
