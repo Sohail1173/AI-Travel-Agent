@@ -21,10 +21,13 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+
+
 # LLM
 llm = ChatGroq(
-    model="llama-3.3-70b-versatile"
+    model=os.getenv("model")
 )
+
 
 
 class TravelState(TypedDict):
@@ -50,7 +53,7 @@ def hotel_agent(state:TravelState):
     query=f"Best hotels for {state["user_query"]}"
     hotel_restuls=tavily_search(query)
     return {
-        "hotel_restuls":hotel_restuls,
+        "hotel_results":hotel_restuls,
         "messages":[
             AIMessage(content=f"Hotel results fetched")
         ],
@@ -96,7 +99,7 @@ def final_agent(state:TravelState):
         Hotels:
         {state["hotel_results"]}
         
-        Itinerary
+        itinerary
         {state["itinerary"]}
         
         """
@@ -107,3 +110,61 @@ def final_agent(state:TravelState):
             "messages":[response],
             "llm_calls":state.get("llm_calls",0)+1
         }
+        
+        
+graph = StateGraph(TravelState)
+
+graph.add_node("flight_agent", flght_agent)
+graph.add_node("hotel_agent", hotel_agent)
+graph.add_node("itinerary_agent", itinerary_agent)
+graph.add_node("final_agent", final_agent)
+
+graph.add_edge(START, "flight_agent")
+graph.add_edge("flight_agent", "hotel_agent")
+graph.add_edge("hotel_agent", "itinerary_agent")
+graph.add_edge("itinerary_agent", "final_agent")
+graph.add_edge("final_agent", END)
+
+
+# Persistent connection so both CLI and Streamlit can share the compiled app
+_conn = psycopg.connect(host=os.getenv("localhost"),
+    user=os.getenv("user"),
+    password=os.getenv("password"),
+    dbname=os.getenv("dbname"),
+    port=os.getenv("port"))
+checkpointer = PostgresSaver(_conn)
+# checkpointer.setup()
+
+app = graph.compile()
+
+
+if __name__ == "__main__":
+    config = {
+        "configurable": {
+            "thread_id": "user_aarohi"
+        }
+    }
+
+    user_input = input("Enter travel request: ")
+
+    result = app.invoke(
+        {
+            "messages": [
+                HumanMessage(content=user_input)
+            ],
+            "user_query": user_input,
+            "flight_results": "",
+            "hotel_results": "",
+            "itinerary": "",
+            "llm_calls": 0
+        }
+    )
+    
+
+    print("\nFINAL RESPONSE:\n",result)
+
+    # for msg in result["messages"]:
+    #     print(msg.content)
+    
+    for msg in result["messages"]:
+        print(msg.content)
