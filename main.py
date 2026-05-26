@@ -31,14 +31,14 @@ llm = ChatGroq(
 
 
 class TravelState(TypedDict):
-    messages=Annotated[list[AnyMessage],operator.add]
+    messages:Annotated[list[AnyMessage],operator.add]
     user_query:str
     flight_results:str
     hotel_results:str
     itinerary:str
     llm_calls:int
     
-def flght_agent(state:TravelState):
+def flight_agent(state:TravelState):
     query=state["user_query"]
     flight_data=search_flight(query)
     return {
@@ -59,8 +59,7 @@ def hotel_agent(state:TravelState):
         ],
         "llm_calls":state.get("llm_calls",0)+1
     }
-    
-    
+
     
 def itinerary_agent(state:TravelState):
     prompt=f"""
@@ -97,7 +96,7 @@ def final_agent(state:TravelState):
         {state["flight_results"]}
         
         Hotels:
-        {state["hotel_results"]}
+        {state["hotel_results"]} 
         
         itinerary
         {state["itinerary"]}
@@ -110,11 +109,12 @@ def final_agent(state:TravelState):
             "messages":[response],
             "llm_calls":state.get("llm_calls",0)+1
         }
-        
+
+
         
 graph = StateGraph(TravelState)
 
-graph.add_node("flight_agent", flght_agent)
+graph.add_node("flight_agent", flight_agent)
 graph.add_node("hotel_agent", hotel_agent)
 graph.add_node("itinerary_agent", itinerary_agent)
 graph.add_node("final_agent", final_agent)
@@ -141,7 +141,7 @@ app = graph.compile()
 if __name__ == "__main__":
     config = {
         "configurable": {
-            "thread_id": "user_aarohi"
+            "thread_id": "user_sohail"
         }
     }
 
